@@ -3,8 +3,8 @@
 block_cipher = None
 
 
-a = Analysis(['main.py'],
-             pathex=['.'],
+a = Analysis(['main_build.py'],
+             pathex=['/home/roman/projects/asteroids'],
              binaries=[],
              datas=[("/home/roman/projects/asteroids/images", "images")],
              hiddenimports=[],
@@ -23,7 +23,7 @@ exe = EXE(pyz,
           a.zipfiles,
           a.datas,
           [],
-          name='main',
+          name='Asteroids',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,

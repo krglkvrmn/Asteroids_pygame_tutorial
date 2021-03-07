@@ -1,2 +1,5 @@
-numpy==1.20.1
+altgraph==0.17
+numpy==1.19.0
 pygame==2.0.1
+pyinstaller==4.2
+pyinstaller-hooks-contrib==2021.1
