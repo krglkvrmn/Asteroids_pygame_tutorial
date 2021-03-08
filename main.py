@@ -9,10 +9,8 @@ import time
 
 
 BG_COLOR = (0, 0, 0)
-SCREEN_SIZE = (1600, 900)
-
-if hasattr(sys, '_MEIPASS'):
-    print(sys._MEIPASS)
+SCREEN = pygame.display.set_mode((0, 0), pygame.RESIZABLE)
+SCREEN_SIZE = SCREEN.get_size()
 
 
 class Game:
@@ -41,6 +39,8 @@ class Game:
                 self.mouse_pressed = True
             if event.type == pygame.MOUSEBUTTONUP:
                 self.mouse_pressed = False
+            if event.type == pygame.KEYUP and event.key == pygame.K_ESCAPE:
+                sys.exit()
         if self.mouse_pressed and (time.time() - self.starship.last_bullet_time) > self.fire_rate:
             if self.booster and self.booster.active and self.booster.type == "Triple_bullets":
                 new_bullets = [self.starship.fire(angle_shift) for angle_shift in (10, 0, -10)]
@@ -122,7 +122,10 @@ class Game:
                     pass
             # Bullets out of the border
             if bullet.pos[0] > SCREEN_SIZE[0] or bullet.pos[1] > SCREEN_SIZE[1] or (bullet.pos < 0).any():
-                del self.bullets[idx]
+                try:
+                    del self.bullets[idx]
+                except IndexError:
+                    pass
         # Asteroids out of borders
         for idx, _ in enumerate(self.asteroids):
             self.asteroids[idx].check_borders()
@@ -135,9 +138,9 @@ class Game:
         info_text = text_font.render(f'Your score is {self.score}', False, (255, 255, 255))
         resume_text = text_font.render('Click to continue', False, (255, 255, 255))
         while True:
-            self.screen.blit(gameover_text, (SCREEN_SIZE[0] / 3, SCREEN_SIZE[1] / 3))
-            self.screen.blit(info_text, (SCREEN_SIZE[0] / 3 * 1.2, SCREEN_SIZE[1] / 3 * 2))
-            self.screen.blit(resume_text, (SCREEN_SIZE[0] / 3 * 1.2, SCREEN_SIZE[1] / 3 * 2.2))
+            self.screen.blit(gameover_text, (SCREEN_SIZE[0] / 3.5, SCREEN_SIZE[1] / 3.5))
+            self.screen.blit(info_text, (SCREEN_SIZE[0] / 3.5 * 1.2, SCREEN_SIZE[1] / 3.5 * 2))
+            self.screen.blit(resume_text, (SCREEN_SIZE[0] / 3.5 * 1.2, SCREEN_SIZE[1] / 3.5 * 2.2))
             pygame.display.flip()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -252,31 +255,31 @@ class Asteroid:
         self.rect = self.image.get_rect(center=self.pos, width=self.w, height=self.h)
 
     def check_borders(self):
-        if self.pos[0] > (SCREEN_SIZE[0] + 50):
+        if self.pos[0] > (SCREEN_SIZE[0] + 100):
             self.pos[0] = 0
-        elif (self.pos[0] + 50) < 0:
+        elif (self.pos[0] + 100) < 0:
             self.pos[0] = SCREEN_SIZE[0]
-        if (self.pos[1] - 50) > SCREEN_SIZE[1]:
+        if (self.pos[1] - 100) > SCREEN_SIZE[1]:
             self.pos[1] = 0
-        elif (self.pos[1] + 50) < 0:
+        elif (self.pos[1] + 100) < 0:
             self.pos[1] = SCREEN_SIZE[1]
         self.rect = self.image.get_rect(center=self.pos)
 
     def _left_pos(self):
-        return np.array((random.uniform(-50, 0),
+        return np.array((random.uniform(-100, 0),
                         random.uniform(0, SCREEN_SIZE[1])))
 
     def _right_pos(self):
-        return np.array((random.uniform(SCREEN_SIZE[0], SCREEN_SIZE[0] + 50),
+        return np.array((random.uniform(SCREEN_SIZE[0], SCREEN_SIZE[0] + 100),
                         random.uniform(0, SCREEN_SIZE[1])))
 
     def _top_pos(self):
         return np.array((random.uniform(0, SCREEN_SIZE[0]),
-                        random.uniform(-50, 0)))
+                        random.uniform(-100, 0)))
 
     def _bottom_pos(self):
         return np.array((random.uniform(0, SCREEN_SIZE[0]),
-                        random.uniform(SCREEN_SIZE[1], SCREEN_SIZE[1] + 50)))
+                        random.uniform(SCREEN_SIZE[1], SCREEN_SIZE[1] + 100)))
 
     def _speed_offset(self):
         offset = self.speed * 0.5 + np.random.uniform(-0.5, 0.5, 2)
@@ -311,7 +314,6 @@ class Booster:
 
 pygame.init()
 pygame.font.init()
-screen = pygame.display.set_mode(SCREEN_SIZE)
 while True:
-    game = Game(screen)
+    game = Game(SCREEN)
     game.run()
