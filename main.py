@@ -6,6 +6,7 @@ import numpy as np
 import math
 import random
 import time
+from itertools import cycle
 
 
 BG_COLOR = (0, 0, 0)
@@ -234,24 +235,35 @@ class Asteroid:
 
     def __init__(self, pos="random", direction="player", ast_type="random"):
         if ast_type == "random":
-            self.type, self.image, self.hitbox = random.choice(self.variants)
+            self.type, self.original_image, self.hitbox = random.choice(self.variants)
         else:
-            self.type, self.image, self.hitbox = random.choice(list(filter(lambda x: x[0] == ast_type, self.variants)))
+            self.type, self.original_image, self.hitbox = random.choice(list(filter(lambda x: x[0] == ast_type, self.variants)))
         if pos == "random":
             self.pos = random.choice([self._left_pos, self._top_pos,
                                       self._right_pos, self._bottom_pos])()
         else:
             self.pos = pos
         self.w, self.h = self.hitbox
+        self.image = self.original_image
         self.rect = self.image.get_rect(center=self.pos)
+        self.inc_a = random.uniform(-2, 2)
+        self.angle = 0
         if direction == "player":
             self.direction = (pygame.mouse.get_pos() - self.pos)
             self.speed = self.direction / 300
         else:
             self.speed = direction
 
+    def inc_angle(self, val):
+        if abs(self.angle) < 360:
+            self.angle += val
+        else:
+            self.angle = 0
+        return self.angle
+
     def move(self):
         self.pos += self.speed
+        self.image = pygame.transform.rotate(self.original_image, self.inc_angle(self.inc_a))
         self.rect = self.image.get_rect(center=self.pos, width=self.w, height=self.h)
 
     def check_borders(self):
