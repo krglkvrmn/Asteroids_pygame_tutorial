@@ -1,10 +1,10 @@
+# Шаг 2. Добавление исчезновения пуль
 import sys         # Модуль sys понадобится нам для закрытия игры
 import os          # Модуль os нужен для работы с путями и файлами
 import pygame      # Модуль pygame для реализации игровой логики   
 import numpy as np # Модуль numpy нужен для поэлементного сложения векторов
 import math        # Модуль math будет полезен для вычисления угла наклона звездолёта
 import time        # Модуль time нужен для замера времени
-import random      # Модуль random нужен для генерации случайных чисел
 
 
 # Инициализация модуля pygame
@@ -28,7 +28,7 @@ class Game:
         self.mouse_pressed = False  # Cохраняет состояние кнопки мыши
         self.fire_rate = 0.2        # Пауза между выстрелами (в секундах)
 
-    def handle_events(self, frame):
+    def handle_events(self):
         """Метод - обработчик событий. Выполняет те же действия, что и в базовом шаблоне"""
         for event in pygame.event.get(): 
             if event.type == pygame.QUIT: 
@@ -41,10 +41,8 @@ class Game:
         if self.mouse_pressed and (time.time() - self.starship.last_bullet_time) > self.fire_rate:
             new_bullet = self.starship.fire()  # ...создать новую пулю...
             self.bullets.append(new_bullet)    # ...и добавить её в список всех пуль
-        if frame % 25 == 0:         # Каждый 25 кадр 
-            self.cast_asteroid()    # Создаём астероид
 
-    def move_objects(self, objects_list):     # Game.move_objects
+    def move_objects(self, objects_list):   
         for obj_idx, _ in enumerate(objects_list):  # Перебор групп объектов (asteroids, bullets)
             for o_idx, _ in enumerate(objects_list[obj_idx]): # Перебор объектов внутри групп
                 objects_list[obj_idx][o_idx].move()   # Перемещение объекта
@@ -58,40 +56,18 @@ class Game:
                 self.screen.blit(obj.image, obj.rect)
         pygame.display.update()
 
-    def check_collisions(self):            # Game.check_collisions
-        # Удаление пуль при вылете с игрового поля
-        asteroids_rects = [ast.rect for ast in self.asteroids]   # Хитбоксы всех астероидов
+    def check_collisions(self):           
         for idx, bullet in enumerate(self.bullets):   # Для каждой пули в игре...
             if bullet.pos[0] > SCREEN_SIZE[0] or bullet.pos[1] > SCREEN_SIZE[1] or (bullet.pos < 0).any():       # ...если центра пули вышел за границы
                 del self.bullets[idx]      # удалить объект пули
-        # Разрушение астероидов при контакте с пулями
-        for idx, bullet in enumerate(self.bullets):
-            # С каким из астероидов имеется столкновение?
-            hit = bullet.rect.collidelist(asteroids_rects)
-            if hit != -1:     # Если столкновение есть...
-                del self.asteroids[hit]  # ...удалить астероид с индексом hit
-                del self.bullets[idx]    # ...удалить пулю с индексом idx
-        # Столкновение астероидов и игрока
-        # Индекс астероида, столкнувшегося с игроком
-        hit = self.starship.rect.collidelist(asteroids_rects)
-        if hit != -1:   # Если столкновение было...   
-            sys.exit()  # ...выйти из игры      
-
-    def cast_asteroid(self):        # Game.cast_asteroid
-        new_asteroid = Asteroid()   # Создаём астероид
-        self.asteroids.append(new_asteroid)   # Добавляем его в список всех астероидов
 
     def run(self):
         """Главный цикл программы. Вызывается 1 раз за игру"""
-        frame = 0
-        clock = pygame.time.Clock()
         while True:
-            clock.tick(60)
-            self.handle_events(frame)
+            self.handle_events()
             self.check_collisions()
-            self.move_objects([[self.starship], self.bullets, self.asteroids])
-            self.draw([[self.starship], self.bullets, self.asteroids])
-            frame += 1
+            self.move_objects([[self.starship], self.bullets])
+            self.draw([[self.starship], self.bullets])
 
 class Starship:
     """Класс представляющий игрока"""
@@ -107,7 +83,7 @@ class Starship:
         # Время последнего выстрела
         self.last_bullet_time = 0
 
-    def move(self):                       # Starship.move
+    def move(self):                       
         mouse_pos = pygame.mouse.get_pos()    # Текущая позиция курсора мыши
         direction = mouse_pos - self.pos      # Текущее направление
         angle = self.calculate_angle(mouse_pos) # Расчёт угла наклона корабля
@@ -116,7 +92,7 @@ class Starship:
         self.image = pygame.transform.rotate(self.original_image, int(angle)) # Вращение картинки
         self.rect = self.image.get_rect(center=self.pos) # Перемещение хитбокса
 
-    def calculate_angle(self, mouse_pos):     # Starship._calculate_angle
+    def calculate_angle(self, mouse_pos):
         rel_x, rel_y = mouse_pos - self.pos   # x и у составляющие вектора направления
         angle = (180 / math.pi) * -math.atan2(rel_y, rel_x) + 90  # Расчёт угла
         return angle
@@ -151,64 +127,6 @@ class Bullet:
         rel_x, rel_y = mouse_pos - self.pos
         angle = (180 / math.pi) * -math.atan2(rel_y, rel_x) + 90
         return angle
-
-
-class Asteroid:
-    # Оригинальные картинки астероидов
-    original_images = [pygame.image.load(os.path.join("images", "ast1_medium.png")),
-                       pygame.image.load(os.path.join("images", "ast2_medium.png")),
-                       pygame.image.load(os.path.join("images", "ast3_medium.png")),
-                       pygame.image.load(os.path.join("images", "ast4_medium.png"))]
-    def __init__(self):
-        self.image = random.choice(self.original_images)      # Выбираем случайную картинку для астероида
-        self.pos = random.choice([self._left_pos, self._top_pos,      # Генерируем случайную начальную позицию
-                                  self._right_pos, self._bottom_pos])()
-        self.rect = self.image.get_rect(center=self.pos)              # Получаем хитбокс
-        self.direction = pygame.mouse.get_pos() - self.pos          # Вычисляем направление
-        self.speed = self.direction / 300                             # Расчитываем скорость
-        
-        
-    def _left_pos(self):
-        """Генерация позиции слева"""
-        return np.array((random.uniform(-100, 0),
-                         random.uniform(0, SCREEN_SIZE[1])))
-
-    def _right_pos(self):
-        """Генерация позиции справа"""
-        return np.array((random.uniform(SCREEN_SIZE[0], SCREEN_SIZE[0] + 100),
-                         random.uniform(0, SCREEN_SIZE[1])))
-
-    def _top_pos(self):
-        """Генерация позиции сверху"""
-        return np.array((random.uniform(0, SCREEN_SIZE[0]),
-                         random.uniform(-100, 0)))
-
-    def _bottom_pos(self):
-        """Генерация позиции снизу"""
-        return np.array((random.uniform(0, SCREEN_SIZE[0]),
-                         random.uniform(SCREEN_SIZE[1], SCREEN_SIZE[1] + 100)))
-
-    def check_borders(self):
-        # Если центр астероида за нижней границей...
-        if self.pos[0] > (SCREEN_SIZE[0] + 100):   
-            self.pos[0] = -100       # ...перемещаем его на верхнюю
-        # Если центр астероида за верхней границей...
-        elif (self.pos[0] + 100) < 0:
-            self.pos[0] = SCREEN_SIZE[0] + 100  # ...перемещаем его на нижнюю
-        # Если центр астероида за правой границей...
-        if (self.pos[1] - 100) > SCREEN_SIZE[1]:
-            self.pos[1] = -100     # ...перемещаем его на левую
-        # Если центр астероида за левой границей...
-        elif (self.pos[1] + 100) < 0:
-            self.pos[1] = SCREEN_SIZE[1] + 100    # ...перемещаем его на правую
-        # Обновляем хитбокс, так как произошло перемещение
-        self.rect = self.image.get_rect(center=self.pos)
-
-    def move(self):
-        self.check_borders()  # Обработка выхода за границы
-        self.pos += self.speed
-        self.rect = self.image.get_rect(center=self.pos)
-
 
 
 game = Game(screen)     # Создание и запуск игры

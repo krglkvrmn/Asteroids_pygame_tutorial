@@ -13,7 +13,7 @@ screen = pygame.display.set_mode((600, 500), pygame.RESIZABLE)
 # Загрузка картинки звездолёта.
 # os.path.join позволяет составлять путь до файла.
 # На Windows можно просто написать pygame.image.load("images\\starship.png")
-starship = pygame.image.load(os.path.join("images", "starship.png"))
+starship = pygame.image.load(os.path.join("../Lesson_3/", "expl.gif"))
 # Получаем размеры (хитбокс) картинки
 starship_rect = starship.get_rect()
 

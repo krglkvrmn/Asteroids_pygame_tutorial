@@ -25,6 +25,11 @@ class Game:
         self.starship = Starship()  # Объект класса Starship (игрок)
         self.bullets = []           # Хранение объектов пуль (Bullet)
         self.asteroids = []         # Заготовка для хранения объектов астероидов
+        self.boosters = []          # Список буcтеров для отрисовки
+        self.boosters_timeouts = {"Rapid_fire": 0,
+                                  "Shield": 0}  # Хранение времени деактивации бустеров
+        self.booster_handlers = {"Rapid_fire": self.rapid_fire,
+                                 "Shield": self.shield} # Словарь с функциями-активаторами бустеров
         self.mouse_pressed = False  # Cохраняет состояние кнопки мыши
         self.fire_rate = 0.2        # Пауза между выстрелами (в секундах)
 
@@ -44,7 +49,31 @@ class Game:
         if frame % 25 == 0:         # Каждый 25 кадр 
             self.cast_asteroid()    # Создаём астероид
 
-    def move_objects(self, objects_list):     # Game.move_objects
+    def boosters_manager(self, frame):
+        """Метод - обработчик всех событий с бустерами в т.ч. столкновений"""
+        boosters_rects = [boost.rect for boost in self.boosters]       # Хитбоксы бустеров для расчёта столкновений
+        hit = self.starship.rect.collidelist(boosters_rects)       # Расчёт столкновений игрока и бустеров
+        if hit != -1:                                              # Если столкновение есть...
+            booster_type = self.boosters[hit].type                 # получаем тип бустера из атрибута type
+            # Если бустер НЕ активирован (время деактивации равно 0)...
+            if self.boosters_timeouts[booster_type] == 0:              
+                self.boosters_timeouts[booster_type] = time.time() + 10 # задаём время деактивации через 10 секунд
+                self.booster_handlers[booster_type]("activate")         # активируем бустер
+            # Если бустер активирован (время деактивации больше 0)...
+            elif self.boosters_timeouts[booster_type] > 0:
+                self.boosters_timeouts[booster_type] += 10              # увеличиваем время действия на 10 секунд
+            # Удаляем бустер после столкновения (картинка исчезнет, но его эффект будет активен)
+            del self.boosters[hit]
+        # Для каждого типа бустеров и времени его деактивации...
+        for booster_type, timeout in self.boosters_timeouts.items():
+            # Если бустер активен (timeout > 0), но активное время закончилось (time.time() > timeout)...
+            if time.time() > timeout > 0:
+                self.boosters_timeouts[booster_type] = 0     # задаём время деактивации равным 0 (отключённое состояние)
+                self.booster_handlers[booster_type]("deactivate")  # деактивируем бустер (возвращаем исходное поведение)
+        if frame % 400 == 0 and frame != 0:     # Каждые 400 кадров (кроме самого первого!)...
+            self.boosters.append(Booster())     # ...размещаем новый бустер на игровом поле
+
+    def move_objects(self, objects_list):  
         for obj_idx, _ in enumerate(objects_list):  # Перебор групп объектов (asteroids, bullets)
             for o_idx, _ in enumerate(objects_list[obj_idx]): # Перебор объектов внутри групп
                 objects_list[obj_idx][o_idx].move()   # Перемещение объекта
@@ -76,12 +105,31 @@ class Game:
         # Столкновение астероидов и игрока
         # Индекс астероида, столкнувшегося с игроком
         hit = self.starship.rect.collidelist(asteroids_rects) 
-        if hit != -1:   # Если столкновение было...    
-            sys.exit()  # ...выйти из игры      
+        if hit != -1:   # Если столкновение было... 
+            # Если бустер "Щит" активен
+            if self.boosters_timeouts["Shield"] > 0:  
+                del self.asteroids[hit]               # Удалим астероид с которым столкнулись
+            # ...иначе
+            else: 
+                sys.exit()  # ...выйти из игры  
 
-    def cast_asteroid(self):        # Game.cast_asteroid
+    def cast_asteroid(self):  
         new_asteroid = Asteroid()   # Создаём астероид
         self.asteroids.append(new_asteroid)   # Добавляем его в список всех астероидов
+
+    def rapid_fire(self, mode):  
+        if mode == "activate":      # Если бустер нужно активировать...
+            self.fire_rate /= 2     # ...уменьшаем паузу между пулями в 2 раза
+        elif mode == "deactivate":  # Если бустер нужно отключить...
+            self.fire_rate *= 2     # ...увеличиваем паузу между пулями в 2 раза (возвращаем к исходной)
+
+    def shield(self, mode):
+        if mode == "activate":
+            # При активации подменяем оригинальную картинку звездолёта на картинку с щитком
+            self.starship.original_image = pygame.image.load(os.path.join("images", "Starship_with_shield.png"))
+        elif mode == "deactivate":
+            # При деактивации возвращаем исходную картинку на место
+            self.starship.original_image = pygame.image.load(os.path.join("images", "starship.png"))        
 
     def run(self):
         """Главный цикл программы. Вызывается 1 раз за игру"""
@@ -90,9 +138,10 @@ class Game:
         while True:
             clock.tick(60)
             self.handle_events(frame)
+            self.boosters_manager(frame)
             self.check_collisions()
             self.move_objects([[self.starship], self.bullets, self.asteroids])
-            self.draw([[self.starship], self.bullets, self.asteroids])
+            self.draw([self.boosters, [self.starship], self.bullets, self.asteroids])
             frame += 1
 
 class Starship:
@@ -109,7 +158,7 @@ class Starship:
         # Время последнего выстрела
         self.last_bullet_time = 0
 
-    def move(self):                       # Starship.move
+    def move(self):  
         mouse_pos = pygame.mouse.get_pos()    # Текущая позиция курсора мыши
         direction = mouse_pos - self.pos      # Текущее направление
         angle = self.calculate_angle(mouse_pos) # Расчёт угла наклона корабля
@@ -173,11 +222,11 @@ class Asteroid:
     def __init__(self, pos=None, speed=None, ast_type=None):    # Конструктор класса Asteroid
         # Если координаты, скорость и тип заданы...
         if (pos is not None) and (speed is not None) and (ast_type is not None):                         
-            self.__init_asteroid_fragment(pos, speed, ast_type) # ...инициализировать осколок
+            self.init_asteroid_fragment(pos, speed, ast_type) # ...инициализировать осколок
         else:                                                   # Иначе (координаты, скорость и тип НЕ заданы)...
-            self.__init_rand_asteroid()                         # ...инициализировать обычный астероид
+            self.init_rand_asteroid()                         # ...инициализировать обычный астероид
 
-    def __init_asteroid_fragment(self, pos, speed, ast_type):
+    def init_asteroid_fragment(self, pos, speed, ast_type):
         """Метод инициализирует осколок астероида, принимая на вход его координаты (pos), скорость (speed) и тип (ast_type)"""
         # Отбираем только картинки с астероидами заданного типа
         ast_type_variants = list(filter(lambda x: x[0] == ast_type, self.ast_variants))
@@ -189,62 +238,58 @@ class Asteroid:
         self.rect = self.image.get_rect(center=self.pos, width=self.w, height=self.h)
         self.speed = speed             # Задаём направление (скорость) НЕ случайно
         
-    def __init_rand_asteroid(self):
+    def init_rand_asteroid(self):
         """Метод инициализирует обычный астероид случайными типом и координатам"""
         # Случайный выбор типа и картинки астероида
         self.type, self.original_image, hitbox_shape = random.choice(self.ast_variants)
         self.image = self.original_image 
         self.w, self.h = hitbox_shape # Сохраняем длину и ширину хитбокса
-        self.pos = random.choice([self._left_pos, self._top_pos,      # Генерируем случайную начальную позицию
-                                  self._right_pos, self._bottom_pos])()
+        self.pos = random.choice([self.left_pos, self.top_pos,      # Генерируем случайную начальную позицию
+                                  self.right_pos, self.bottom_pos])()
         # Получаем хитбокс с заданными размерами
         self.rect = self.image.get_rect(center=self.pos, width=self.w, height=self.h)
         self.direction = pygame.mouse.get_pos() - self.pos          # Вычисляем направление
         self.speed = self.direction / 300                           # Расчитываем скорость
         
-    def _left_pos(self):
+    def left_pos(self):
         """Генерация позиции слева"""
-        return np.array((random.uniform(-100, 0),
-                         random.uniform(0, SCREEN_SIZE[1])))
+        return np.array((-150, random.uniform(0, SCREEN_SIZE[1])))
 
-    def _right_pos(self):
+    def right_pos(self):
         """Генерация позиции справа"""
-        return np.array((random.uniform(SCREEN_SIZE[0], SCREEN_SIZE[0] + 100),
-                         random.uniform(0, SCREEN_SIZE[1])))
+        return np.array((SCREEN_SIZE[0] + 150, random.uniform(0, SCREEN_SIZE[1])))
 
-    def _top_pos(self):
+    def top_pos(self):
         """Генерация позиции сверху"""
-        return np.array((random.uniform(0, SCREEN_SIZE[0]),
-                         random.uniform(-100, 0)))
+        return np.array((random.uniform(0, SCREEN_SIZE[0]), -150))
 
-    def _bottom_pos(self):
+    def bottom_pos(self):
         """Генерация позиции снизу"""
-        return np.array((random.uniform(0, SCREEN_SIZE[0]),
-                         random.uniform(SCREEN_SIZE[1], SCREEN_SIZE[1] + 100)))
+        return np.array((random.uniform(0, SCREEN_SIZE[0]), SCREEN_SIZE[1] + 150))
 
-    def _speed_offset(self):
+    def speed_offset(self):
         # Уменьшаем скорость в 2 раза и изменяем её составляющие по x и y на небольшую величину
         offset = self.speed * 0.5 + np.random.uniform(-0.5, 0.5, 2)
         return offset
 
-    def _pos_offset(self):        
+    def pos_offset(self):        
         # Возвращаем немного смещённые координаты центра астероида
         offset = self.pos + np.random.uniform(-10, 10, 2)
         return offset
 
     def check_borders(self):
         # Если центр астероида за нижней границей...
-        if self.pos[0] > (SCREEN_SIZE[0] + 100):   
-            self.pos[0] = -100       # ...перемещаем его на верхнюю
+        if self.pos[0] > (SCREEN_SIZE[0] + 150):   
+            self.pos[0] = -150       # ...перемещаем его на верхнюю
         # Если центр астероида за верхней границей...
-        elif (self.pos[0] + 100) < 0:
-            self.pos[0] = SCREEN_SIZE[0] + 100  # ...перемещаем его на нижнюю
+        elif (self.pos[0] + 150) < 0:
+            self.pos[0] = SCREEN_SIZE[0] + 150  # ...перемещаем его на нижнюю
         # Если центр астероида за правой границей...
-        if (self.pos[1] - 100) > SCREEN_SIZE[1]:
-            self.pos[1] = -100     # ...перемещаем его на левую
+        if (self.pos[1] - 150) > SCREEN_SIZE[1]:
+            self.pos[1] = -150     # ...перемещаем его на левую
         # Если центр астероида за левой границей...
-        elif (self.pos[1] + 100) < 0:
-            self.pos[1] = SCREEN_SIZE[1] + 100    # ...перемещаем его на правую
+        elif (self.pos[1] + 150) < 0:
+            self.pos[1] = SCREEN_SIZE[1] + 150    # ...перемещаем его на правую
         # Обновляем хитбокс, так как произошло перемещение
         self.rect = self.image.get_rect(center=self.pos)
 
@@ -258,16 +303,30 @@ class Asteroid:
         if self.type == "large":                                            # Если астероид большой...
             for _ in range(2):
                 # Генерируем новые смещённые параметры для осколков
-                pos, speed = self._pos_offset(), self._speed_offset()   
+                pos, speed = self.pos_offset(), self.speed_offset()   
                 fragments.append(Asteroid(pos, speed, "medium"))    # Передаём их в конструктор астероида
         if self.type == "medium":                                           # Если астероид средний...
             for _ in range(3):
                 # Генерируем новые смещённые параметры для осколков
-                pos, speed = self._pos_offset(), self._speed_offset()   
+                pos, speed = self.pos_offset(), self.speed_offset()   
                 fragments.append(Asteroid(pos, speed, "small"))    # Передаём их в конструктор астероида
         if self.type == "small":                                            # Если астероид маленький...
             pass                                                            # ...не делать ничего
         return fragments
+
+
+class Booster:
+    """Класс представляющий картинку бустера на игровом поле. Все эффекты от бустеров не будут непосредственно связаны с объектами данного класса и будут описаны внутри класса Game"""
+    # Типы возможных бустеров и их картинки
+    booster_types = {"Rapid_fire": pygame.image.load(os.path.join("images", "Rapid_fire.png")),
+                     "Shield": pygame.image.load(os.path.join("images", "Shield.png"))}    
+    def __init__(self):
+        self.type = random.choice(list(self.booster_types.keys()))  # Выбор случайного типа для бустера
+        self.image = self.booster_types[self.type]                # Выбор картинки бустера
+        self.pos = np.array([random.randint(100, SCREEN_SIZE[0] - 100),   # Генерация случайных координат для бустера
+                             random.randint(100, SCREEN_SIZE[1] - 100)])
+        self.rect = self.image.get_rect(center=self.pos)                  # Получение хитбокса бустера
+
 
 
 

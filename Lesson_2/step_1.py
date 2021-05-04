@@ -1,3 +1,4 @@
+# Шаг 1. Добавление стрельбы
 import sys         # Модуль sys понадобится нам для закрытия игры
 import os          # Модуль os нужен для работы с путями и файлами
 import pygame      # Модуль pygame для реализации игровой логики   
@@ -38,7 +39,7 @@ class Game:
             new_bullet = self.starship.fire()  # ...создать новую пулю...
             self.bullets.append(new_bullet)    # ...и добавить её в список всех пуль
 
-    def move_objects(self, objects_list):     # Game.move_objects
+    def move_objects(self, objects_list):   
         for obj_idx, _ in enumerate(objects_list):  # Перебор групп объектов (asteroids, bullets)
             for o_idx, _ in enumerate(objects_list[obj_idx]): # Перебор объектов внутри групп
                 objects_list[obj_idx][o_idx].move()   # Перемещение объекта
@@ -71,7 +72,7 @@ class Starship:
         # Границы модельки корабля (хитбокс)    
         self.rect = self.image.get_rect(center=self.pos)
 
-    def move(self):                       # Starship.move
+    def move(self):                     
         mouse_pos = pygame.mouse.get_pos()    # Текущая позиция курсора мыши
         direction = mouse_pos - self.pos      # Текущее направление
         angle = self.calculate_angle(mouse_pos) # Расчёт угла наклона корабля
@@ -80,7 +81,7 @@ class Starship:
         self.image = pygame.transform.rotate(self.original_image, int(angle)) # Вращение картинки
         self.rect = self.image.get_rect(center=self.pos) # Перемещение хитбокса
 
-    def calculate_angle(self, mouse_pos):     # Starship._calculate_angle
+    def calculate_angle(self, mouse_pos):  
         rel_x, rel_y = mouse_pos - self.pos   # x и у составляющие вектора направления
         angle = (180 / math.pi) * -math.atan2(rel_y, rel_x) + 90  # Расчёт угла
         return angle

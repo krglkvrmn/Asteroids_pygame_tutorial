@@ -1,3 +1,4 @@
+# Шаг 3. Добавление астероидов.
 import sys         # Модуль sys понадобится нам для закрытия игры
 import os          # Модуль os нужен для работы с путями и файлами
 import pygame      # Модуль pygame для реализации игровой логики   
@@ -44,7 +45,7 @@ class Game:
         if frame % 25 == 0:         # Каждый 25 кадр 
             self.cast_asteroid()    # Создаём астероид
 
-    def move_objects(self, objects_list):     # Game.move_objects
+    def move_objects(self, objects_list): 
         for obj_idx, _ in enumerate(objects_list):  # Перебор групп объектов (asteroids, bullets)
             for o_idx, _ in enumerate(objects_list[obj_idx]): # Перебор объектов внутри групп
                 objects_list[obj_idx][o_idx].move()   # Перемещение объекта
@@ -58,12 +59,12 @@ class Game:
                 self.screen.blit(obj.image, obj.rect)
         pygame.display.update()
 
-    def check_collisions(self):            # Game.check_collisions
+    def check_collisions(self):
         for idx, bullet in enumerate(self.bullets):   # Для каждой пули в игре...
             if bullet.pos[0] > SCREEN_SIZE[0] or bullet.pos[1] > SCREEN_SIZE[1] or (bullet.pos < 0).any():       # ...если центра пули вышел за границы
                 del self.bullets[idx]      # удалить объект пули
 
-    def cast_asteroid(self):        # Game.cast_asteroid
+    def cast_asteroid(self):     
         new_asteroid = Asteroid()   # Создаём астероид
         self.asteroids.append(new_asteroid)   # Добавляем его в список всех астероидов
 
@@ -93,7 +94,7 @@ class Starship:
         # Время последнего выстрела
         self.last_bullet_time = 0
 
-    def move(self):                       # Starship.move
+    def move(self):              
         mouse_pos = pygame.mouse.get_pos()    # Текущая позиция курсора мыши
         direction = mouse_pos - self.pos      # Текущее направление
         angle = self.calculate_angle(mouse_pos) # Расчёт угла наклона корабля
@@ -102,7 +103,7 @@ class Starship:
         self.image = pygame.transform.rotate(self.original_image, int(angle)) # Вращение картинки
         self.rect = self.image.get_rect(center=self.pos) # Перемещение хитбокса
 
-    def calculate_angle(self, mouse_pos):     # Starship._calculate_angle
+    def calculate_angle(self, mouse_pos):
         rel_x, rel_y = mouse_pos - self.pos   # x и у составляющие вектора направления
         angle = (180 / math.pi) * -math.atan2(rel_y, rel_x) + 90  # Расчёт угла
         return angle
@@ -147,32 +148,30 @@ class Asteroid:
                        pygame.image.load(os.path.join("images", "ast4_medium.png"))]
     def __init__(self):
         self.image = random.choice(self.original_images)      # Выбираем случайную картинку для астероида
-        self.pos = random.choice([self._left_pos, self._top_pos,      # Генерируем случайную начальную позицию
-                                  self._right_pos, self._bottom_pos])()
+        self.pos = random.choice([self.left_pos, self.top_pos,      # Генерируем случайную начальную позицию
+                                  self.right_pos, self.bottom_pos])()
         self.rect = self.image.get_rect(center=self.pos)              # Получаем хитбокс
         self.direction = pygame.mouse.get_pos() - self.pos          # Вычисляем направление
         self.speed = self.direction / 300                             # Расчитываем скорость
         
         
-    def _left_pos(self):
+    def left_pos(self):
         """Генерация позиции слева"""
-        return np.array((random.uniform(-100, 0),
-                         random.uniform(0, SCREEN_SIZE[1])))
+        return np.array((-150, random.uniform(0, SCREEN_SIZE[1])))
 
-    def _right_pos(self):
+    def right_pos(self):
         """Генерация позиции справа"""
-        return np.array((random.uniform(SCREEN_SIZE[0], SCREEN_SIZE[0] + 100),
+        return np.array((SCREEN_SIZE[0] + 150,
                          random.uniform(0, SCREEN_SIZE[1])))
 
-    def _top_pos(self):
+    def top_pos(self):
         """Генерация позиции сверху"""
-        return np.array((random.uniform(0, SCREEN_SIZE[0]),
-                         random.uniform(-100, 0)))
+        return np.array((random.uniform(0, SCREEN_SIZE[0]), -150))
 
-    def _bottom_pos(self):
+    def bottom_pos(self):
         """Генерация позиции снизу"""
         return np.array((random.uniform(0, SCREEN_SIZE[0]),
-                         random.uniform(SCREEN_SIZE[1], SCREEN_SIZE[1] + 100)))
+                         SCREEN_SIZE[1] + 150))
 
     def move(self):
         self.pos += self.speed

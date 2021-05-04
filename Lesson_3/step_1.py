@@ -1,3 +1,4 @@
+# Шаг 4. Добавление столкновений
 import sys         # Модуль sys понадобится нам для закрытия игры
 import os          # Модуль os нужен для работы с путями и файлами
 import pygame      # Модуль pygame для реализации игровой логики   
@@ -44,7 +45,7 @@ class Game:
         if frame % 25 == 0:         # Каждый 25 кадр 
             self.cast_asteroid()    # Создаём астероид
 
-    def move_objects(self, objects_list):     # Game.move_objects
+    def move_objects(self, objects_list):
         for obj_idx, _ in enumerate(objects_list):  # Перебор групп объектов (asteroids, bullets)
             for o_idx, _ in enumerate(objects_list[obj_idx]): # Перебор объектов внутри групп
                 objects_list[obj_idx][o_idx].move()   # Перемещение объекта
@@ -58,7 +59,7 @@ class Game:
                 self.screen.blit(obj.image, obj.rect)
         pygame.display.update()
 
-    def check_collisions(self):            # Game.check_collisions
+    def check_collisions(self):
         # Удаление пуль при вылете с игрового поля
         asteroids_rects = [ast.rect for ast in self.asteroids]   # Хитбоксы всех астероидов
         for idx, bullet in enumerate(self.bullets):   # Для каждой пули в игре...
@@ -77,7 +78,7 @@ class Game:
         if hit != -1:   # Если столкновение было...   
             sys.exit()  # ...выйти из игры      
 
-    def cast_asteroid(self):        # Game.cast_asteroid
+    def cast_asteroid(self): 
         new_asteroid = Asteroid()   # Создаём астероид
         self.asteroids.append(new_asteroid)   # Добавляем его в список всех астероидов
 
@@ -107,7 +108,7 @@ class Starship:
         # Время последнего выстрела
         self.last_bullet_time = 0
 
-    def move(self):                       # Starship.move
+    def move(self):
         mouse_pos = pygame.mouse.get_pos()    # Текущая позиция курсора мыши
         direction = mouse_pos - self.pos      # Текущее направление
         angle = self.calculate_angle(mouse_pos) # Расчёт угла наклона корабля
@@ -161,46 +162,44 @@ class Asteroid:
                        pygame.image.load(os.path.join("images", "ast4_medium.png"))]
     def __init__(self):
         self.image = random.choice(self.original_images)      # Выбираем случайную картинку для астероида
-        self.pos = random.choice([self._left_pos, self._top_pos,      # Генерируем случайную начальную позицию
-                                  self._right_pos, self._bottom_pos])()
+        self.pos = random.choice([self.left_pos, self.top_pos,      # Генерируем случайную начальную позицию
+                                  self.right_pos, self.bottom_pos])()
         self.rect = self.image.get_rect(center=self.pos)              # Получаем хитбокс
         self.direction = pygame.mouse.get_pos() - self.pos          # Вычисляем направление
         self.speed = self.direction / 300                             # Расчитываем скорость
         
         
-    def _left_pos(self):
+    def left_pos(self):
         """Генерация позиции слева"""
-        return np.array((random.uniform(-100, 0),
-                         random.uniform(0, SCREEN_SIZE[1])))
+        return np.array((-150, random.uniform(0, SCREEN_SIZE[1])))
 
-    def _right_pos(self):
+    def right_pos(self):
         """Генерация позиции справа"""
-        return np.array((random.uniform(SCREEN_SIZE[0], SCREEN_SIZE[0] + 100),
+        return np.array((SCREEN_SIZE[0] + 150,
                          random.uniform(0, SCREEN_SIZE[1])))
 
-    def _top_pos(self):
+    def top_pos(self):
         """Генерация позиции сверху"""
-        return np.array((random.uniform(0, SCREEN_SIZE[0]),
-                         random.uniform(-100, 0)))
+        return np.array((random.uniform(0, SCREEN_SIZE[0]), -150))
 
-    def _bottom_pos(self):
+    def bottom_pos(self):
         """Генерация позиции снизу"""
         return np.array((random.uniform(0, SCREEN_SIZE[0]),
-                         random.uniform(SCREEN_SIZE[1], SCREEN_SIZE[1] + 100)))
+                         SCREEN_SIZE[1] + 150))
 
     def check_borders(self):
         # Если центр астероида за нижней границей...
-        if self.pos[0] > (SCREEN_SIZE[0] + 100):   
-            self.pos[0] = -100       # ...перемещаем его на верхнюю
+        if self.pos[0] > (SCREEN_SIZE[0] + 150):   
+            self.pos[0] = -150       # ...перемещаем его на верхнюю
         # Если центр астероида за верхней границей...
-        elif (self.pos[0] + 100) < 0:
-            self.pos[0] = SCREEN_SIZE[0] + 100  # ...перемещаем его на нижнюю
+        elif (self.pos[0] + 150) < 0:
+            self.pos[0] = SCREEN_SIZE[0] + 150  # ...перемещаем его на нижнюю
         # Если центр астероида за правой границей...
-        if (self.pos[1] - 100) > SCREEN_SIZE[1]:
-            self.pos[1] = -100     # ...перемещаем его на левую
+        if (self.pos[1] - 150) > SCREEN_SIZE[1]:
+            self.pos[1] = -150     # ...перемещаем его на левую
         # Если центр астероида за левой границей...
-        elif (self.pos[1] + 100) < 0:
-            self.pos[1] = SCREEN_SIZE[1] + 100    # ...перемещаем его на правую
+        elif (self.pos[1] + 150) < 0:
+            self.pos[1] = SCREEN_SIZE[1] + 150    # ...перемещаем его на правую
         # Обновляем хитбокс, так как произошло перемещение
         self.rect = self.image.get_rect(center=self.pos)
 
