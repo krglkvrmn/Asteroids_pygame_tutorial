@@ -46,8 +46,9 @@ class GUI:
         "Explosive_bullets": pygame.transform.rotate(
             pygame.image.load(os.path.join("images", "powered_bullet.png")), 90)}
 
-    def __init__(self, screen):
+    def __init__(self, screen, starship):
         self.screen = screen
+        self.starship = starship
         self.score = 0
         self.weapons = None
         self.weapon_type = None
@@ -60,6 +61,10 @@ class GUI:
         self.abilities_v_offset = np.array((0, 35))
         self.weapon_panel_position = np.array((5, SCREEN_SIZE[1] / 4))
         self.weapons_v_offset = np.array((0, 35))
+        self.switch_weapon_hint_timeout = 160
+        self.switch_weapon_hint_active = False
+        self.stasis_hint_timeout = 160
+        self.stasis_hint_active = False
 
     def update(self, score, weapon_type, weapons, timed_abilities):
         self.score = score
@@ -72,6 +77,7 @@ class GUI:
         self.draw_score()
         self.draw_weapons()
         self.draw_abilities()
+        self.draw_hints()
 
     def draw_score(self):
         score_text = self.score_font.render(f'Score: {self.score}', False, (255, 255, 255))
@@ -96,6 +102,22 @@ class GUI:
     def draw_abilities(self):
         text = self.score_font.render(f'Stasis: {self.timed_abilities["Stasis"].amount:.0f}', False, (255, 255, 255))
         self.screen.blit(text, self.abilities_position)
+
+    def draw_hints(self):
+        if self.switch_weapon_hint_active and self.switch_weapon_hint_timeout:
+            text = self.score_font.render(f'Нажмите "Пробел" для смены оружия', False, (255, 255, 255))
+            self.screen.blit(text, self.starship.rect.topright)
+            self.switch_weapon_hint_timeout -= 1
+        if self.stasis_hint_active and self.stasis_hint_timeout:
+            text = self.score_font.render(f'Зажмите "s" для активации стазиса', False, (255, 255, 255))
+            self.screen.blit(text, self.starship.rect.topright)
+            self.stasis_hint_timeout -= 1
+
+    def activate_stasis_hint(self):
+        self.stasis_hint_active = True
+
+    def activate_weapon_switch_hint(self):
+        self.switch_weapon_hint_active = True
 
     def game_over(self):
         gameover_text = self.gameover_font.render('GAME OVER!', False, (255, 255, 255))
@@ -126,7 +148,7 @@ class Game:
         self.asteroids = RenderPlain()  # Заготовка для хранения объектов астероидов
         self.boosters = RenderPlain()  # Список буcтеров для отрисовки
         self.explosions = RenderPlain()
-        self.gui = GUI(screen)
+        self.gui = GUI(screen, self.starship)
         self.boosters_timeouts = {"Rapid_fire": 0,
                                   "Shield": 0,
                                   "Triple_bullets": 0,
@@ -388,6 +410,7 @@ class Game:
     def stasis(self, mode):
         current_amount = self.timed_abilities["Stasis"].amount
         if mode == "activate" and current_amount < 1000:
+            self.gui.activate_stasis_hint()
             if 1000 - current_amount < 200:
                 self.timed_abilities["Stasis"].amount = 1000
             else:
@@ -403,7 +426,8 @@ class Game:
             pass
 
     def explosive_bullets(self, mode):
-        pass
+        if mode == "activate":
+            self.gui.activate_weapon_switch_hint()
 
     def run(self):
         """Главный цикл программы. Вызывается 1 раз за игру"""
