@@ -13,7 +13,8 @@ SCREEN_SIZE = screen.get_size()
 
 
 class Game:
-    """Основной класс игры. В нём представлены основные методы для управления игровыми объектами, а также сами объекты"""
+    """Основной класс игры. В нём представлены основные методы для управления игровыми объектами, а также сами
+    объекты """
 
     def __init__(self, screen):
         self.screen = screen
@@ -22,24 +23,29 @@ class Game:
         self.asteroids = []  # Заготовка для хранения объектов астероидов
 
     def handle_events(self):
-        """Метод - обработчик событий. Выполняет те же действия, что и в базовом шаблоне"""
+        # Цикл обработки событий (нажатия кнопок, движения мыши и т.д.)
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                sys.exit()
+            if event.type == pygame.QUIT:  # Нажатие на "Х" на окне программы.
+                sys.exit()   # Выход из программы
 
-    def draw(self, objects_list):
-        """Метод отрисовки объектов. Переносит на игровое поле все объекты переданные ему внутри аргумена objects_list"""
-        screen.fill(BG_COLOR)
-        for objects in objects_list:
-            for obj in objects:
-                self.screen.blit(obj.image, obj.rect)
-        pygame.display.update()
+    def draw(self, objects_list, debug=False):
+        """Метод отрисовки объектов. Переносит на игровое поле все объекты переданные ему внутри аргумента
+        objects_list """
+        screen.fill(BG_COLOR)                    # Заливка экрана чёрным цветом
+        for objects in objects_list:             # Перебираем типы объектов (корабль, пули, астероиды и т.д.)
+            for obj in objects:                  # Перебираем сами объекты
+                self.screen.blit(obj.image, obj.rect)   # Рисуем изображение объекта на экране
+        if debug:        # Дебаг режим позволяет отобразить хитбоксы всех объектов
+            for objects in objects_list:
+                for obj in objects:
+                    pygame.draw.rect(self.screen, (0, 255, 0), obj.rect, 2)  # Отрисовка прямоугольника зелёного цвета
+        pygame.display.update()   # Применение изменений
 
     def run(self):
         """Главный цикл программы. Вызывается 1 раз за игру"""
         while True:
             self.handle_events()
-            self.draw([[self.starship]])
+            self.draw([[self.starship]], debug=True)
 
 
 class Starship:

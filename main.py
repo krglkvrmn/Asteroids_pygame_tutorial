@@ -442,7 +442,7 @@ class Game:
                 self.update_objects([self.enemy_bullets, self.asteroids, self.explosions])
                 self.update_enemies(self.enemies, self.starship)
             self.draw(RenderPlain(self.starship), [self.boosters, self.bullets, self.enemy_bullets, self.asteroids,
-                                                   self.explosions], enemies=self.enemies)
+                                                   self.explosions], enemies=self.enemies, debug=True)
             self.gui.update(self.score, self.weapon_type, self.weapons, self.timed_abilities)
             pygame.display.update()
             if self.check_collisions():
