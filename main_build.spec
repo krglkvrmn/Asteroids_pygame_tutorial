@@ -1,13 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import os
+
 block_cipher = None
 
-
+working_dir = os.getcwd()
 a = Analysis(['main_build.py'],
-             pathex=['/home/roman/projects/asteroids'],
+             pathex=[working_dir],
              binaries=[],
-             datas=[("/home/roman/projects/asteroids/images", "images"),
-                    ("/home/roman/projects/asteroids/sounds", "sounds")],
+             datas=[(os.path.join(working_dir, "images"), "images"),
+                    (os.path.join(working_dir, "sounds"), "sounds")],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
